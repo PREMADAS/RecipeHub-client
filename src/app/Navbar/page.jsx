@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { toast } from "react-toastify";
+
 
 const NAV_LINKS = [
     { href: "/", label: "Home" },
@@ -12,7 +14,65 @@ const NAV_LINKS = [
 
 export default function Navbar() {
     const pathname = usePathname();
+    const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
+    const [profileOpen, setProfileOpen] = useState(false);
+
+    const [user, setUser] = useState(null);
+    const [authLoading, setAuthLoading] = useState(true);
+
+    const profileRef = useRef(null);
+
+    // পেজ লোড হওয়ার সাথে সাথে বর্তমান ইউজার কে জানা আছে কিনা চেক করা (cookie দিয়ে)
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/me`, {
+                    method: "GET",
+                    credentials: "include",
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    setUser(data.user);
+                } else {
+                    setUser(null);
+                }
+            } catch (err) {
+                setUser(null);
+            } finally {
+                setAuthLoading(false);
+            }
+        };
+
+        fetchUser();
+    }, [pathname]); // route বদলালে আবার চেক করবে (যেমন login/register এর পর)
+
+    // profile dropdown এর বাইরে ক্লিক করলে বন্ধ হয়ে যাবে
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (profileRef.current && !profileRef.current.contains(e.target)) {
+                setProfileOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleLogout = async () => {
+        try {
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/logout`, {
+                method: "POST",
+                credentials: "include",
+            });
+            setUser(null);
+            setProfileOpen(false);
+            toast.success("Logged out successfully");
+            router.push("/");
+        } catch (err) {
+            toast.error("Failed to log out. Please try again.");
+        }
+    };
 
     return (
         <header className="sticky top-0 z-50 bg-white backdrop-blur-md border-b border-[#E5D9BE]">
@@ -53,20 +113,72 @@ export default function Navbar() {
                         })}
                     </nav>
 
+                    {user && (
+                        <Link
+                            href="/dashboard"
+                            className={`relative text-[14.5px] font-medium ml-0 transition-colors duration-150 ${pathname === "/dashboard"
+                                ? "text-[#2B2118]"
+                                : "text-[#4A3B2C]/70 hover:text-[#2B2118]"
+                                }`}
+                        >
+                            Dashboard
+                            {pathname === "/dashboard" && (
+                                <span className="absolute -bottom-[22px] left-0 right-0 h-[2px] bg-green-700 rounded-full" />
+                            )}
+                        </Link>
+                    )}
+
                     {/* Desktop actions */}
                     <div className="hidden md:flex items-center gap-3">
-                        <Link
-                            href="/login"
-                            className="text-[13.5px] font-semibold px-4 py-2 rounded-lg border border-[#2B2118]/15 text-[#2B2118] hover:bg-[#2B2118]/5 transition-colors duration-150"
-                        >
-                            Login
-                        </Link>
-                        <Link
-                            href="/register"
-                            className="text-[13.5px] font-semibold px-4 py-2 rounded-lg text-white bg-green-600 shadow-[0_6px_16px_rgba(193,80,46,0.28)] hover:-translate-y-px transition-transform duration-150"
-                        >
-                            Register
-                        </Link>
+                        {authLoading ? (
+                            // লোড হওয়ার সময় flash এড়াতে ছোট placeholder
+                            <div className="w-[110px] h-9 rounded-full bg-gray-100 animate-pulse" />
+                        ) : user ? (
+                            <div className="relative" ref={profileRef}>
+                                <button
+                                    onClick={() => setProfileOpen((o) => !o)}
+                                    className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full border border-[#2B2118]/15 hover:bg-[#2B2118]/5 transition-colors duration-150"
+                                >
+                                    <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-200 shrink-0">
+                                        {user.image ? (
+                                            <Image
+                                                src={user.image}
+                                                alt={user.name}
+                                                width={28}
+                                                height={28}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-xs font-semibold text-gray-500">
+                                                {user.name?.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <span className="text-[13.5px] font-medium text-[#2B2118]">
+                                        {user.name}
+                                    </span>
+
+                                </button>
+
+
+
+                            </div>
+                        ) : (
+                            <>
+                                <Link
+                                    href="/Login"
+                                    className="text-[13.5px] font-semibold px-4 py-2 rounded-lg border border-[#2B2118]/15 text-[#2B2118] hover:bg-[#2B2118]/5 transition-colors duration-150"
+                                >
+                                    Login
+                                </Link>
+                                <Link
+                                    href="/Register"
+                                    className="text-[13.5px] font-semibold px-4 py-2 rounded-lg text-white bg-green-600 shadow-[0_6px_16px_rgba(193,80,46,0.28)] hover:-translate-y-px transition-transform duration-150"
+                                >
+                                    Register
+                                </Link>
+                            </>
+                        )}
                     </div>
 
                     {/* Mobile hamburger */}
@@ -93,7 +205,7 @@ export default function Navbar() {
 
             {/* Mobile menu */}
             <div
-                className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${menuOpen ? "max-h-72" : "max-h-0"
+                className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${menuOpen ? "max-h-96" : "max-h-0"
                     }`}
             >
                 <div className="px-6 pb-5 flex flex-col gap-1 border-t border-[#E5D9BE] pt-4">
@@ -108,22 +220,62 @@ export default function Navbar() {
                             {link.label}
                         </Link>
                     ))}
-                    <div className="flex gap-3 mt-3">
+
+                    {user && (
                         <Link
-                            href="/login"
+                            href="/dashboard"
                             onClick={() => setMenuOpen(false)}
-                            className="flex-1 text-center text-[13.5px] font-semibold px-4 py-2.5 rounded-lg border border-[#2B2118]/15 text-[#2B2118]"
+                            className={`text-[15px] font-medium py-2.5 ${pathname === "/dashboard" ? "text-[#C1502E]" : "text-[#2B2118]"
+                                }`}
                         >
-                            Login
+                            Dashboard
                         </Link>
-                        <Link
-                            href="/register"
-                            onClick={() => setMenuOpen(false)}
-                            className="flex-1 text-center text-[13.5px] font-semibold px-4 py-2.5 rounded-lg text-white bg-green-600"
-                        >
-                            Register
-                        </Link>
-                    </div>
+                    )}
+
+                    {!authLoading && user ? (
+                        <div className="mt-3 pt-3 border-t border-[#E5D9BE]">
+                            <div className="flex items-center gap-2.5 mb-3">
+                                <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 shrink-0">
+                                    {user.image ? (
+                                        <Image
+                                            src={user.image}
+                                            alt={user.name}
+                                            width={32}
+                                            height={32}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-xs font-semibold text-gray-500">
+                                            {user.name?.charAt(0).toUpperCase()}
+                                        </div>
+                                    )}
+                                </div>
+                                <span className="text-[14px] font-medium text-[#2B2118]">
+                                    {user.name}
+                                </span>
+                            </div>
+
+                        </div>
+                    ) : (
+                        !authLoading && (
+                            <div className="flex gap-3 mt-3">
+                                <Link
+                                    href="/Login"
+                                    onClick={() => setMenuOpen(false)}
+                                    className="flex-1 text-center text-[13.5px] font-semibold px-4 py-2.5 rounded-lg border border-[#2B2118]/15 text-[#2B2118]"
+                                >
+                                    Login
+                                </Link>
+                                <Link
+                                    href="/Register"
+                                    onClick={() => setMenuOpen(false)}
+                                    className="flex-1 text-center text-[13.5px] font-semibold px-4 py-2.5 rounded-lg text-white bg-green-600"
+                                >
+                                    Register
+                                </Link>
+                            </div>
+                        )
+                    )}
                 </div>
             </div>
         </header>

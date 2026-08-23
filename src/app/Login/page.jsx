@@ -1,0 +1,220 @@
+"use client";
+
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "react-toastify";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+
+function LoginForm() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+
+    const redirectTo = searchParams.get("redirect") || "/";
+
+    const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+
+    const [formData, setFormData] = useState({
+        email: "",
+        password: "",
+    });
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError("");
+
+        if (!formData.email || !formData.password) {
+            setError("Please enter both email and password.");
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include", // httpOnly cookie পাঠানো/গ্রহণ করার জন্য বাধ্যতামূলক
+                body: JSON.stringify(formData),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                toast.error(data.error || "Login failed. Please try again.");
+                setError(data.error || "Login failed. Please try again.");
+                setLoading(false);
+                return;
+            }
+
+            toast.success("Login successful!");
+            router.push(redirectTo); // intended route এ পাঠানো, না থাকলে home
+        } catch (err) {
+            console.error(err);
+            toast.error("Something went wrong. Please try again.");
+            setError("Something went wrong. Please try again.");
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleLogin = () => {
+        // পরে যোগ হবে
+    };
+
+    return (
+        <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 px-4 py-10 sm:px-6">
+            <div className="w-full max-w-md">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
+                    {/* Header */}
+                    <div className="mb-6 sm:mb-8">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                            Login
+                        </h1>
+                        <p className="mt-1 text-sm text-gray-500">
+                            Welcome back — enter your details to continue.
+                        </p>
+                    </div>
+
+                    {/* Error message */}
+                    {error && (
+                        <div className="mb-5 rounded-lg bg-red-50 border border-red-200 px-3.5 py-2.5 text-sm text-red-600">
+                            {error}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        {/* Email */}
+                        <div>
+                            <label
+                                htmlFor="email"
+                                className="block text-sm font-medium text-gray-700 mb-1.5"
+                            >
+                                Email
+                            </label>
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    placeholder="you@example.com"
+                                    className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-10 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Password */}
+                        <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <label
+                                    htmlFor="password"
+                                    className="block text-sm font-medium text-gray-700"
+                                >
+                                    Password
+                                </label>
+                                <a
+                                    href="/forgot-password"
+                                    className="text-xs font-medium text-gray-500 hover:text-gray-900 transition"
+                                >
+                                    Forgot password?
+                                </a>
+                            </div>
+                            <div className="relative">
+                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                    id="password"
+                                    name="password"
+                                    type={showPassword ? "text" : "password"}
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    placeholder="Enter your password"
+                                    className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-10 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword((prev) => !prev)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="w-4 h-4" />
+                                    ) : (
+                                        <Eye className="w-4 h-4" />
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Submit */}
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full rounded-lg bg-gray-900 text-white text-sm font-medium py-2.5 mt-2 hover:bg-gray-800 active:bg-gray-950 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            {loading ? "Logging in..." : "Log in"}
+                        </button>
+                    </form>
+
+                    {/* Divider */}
+                    <div className="flex items-center gap-3 my-6">
+                        <div className="h-px flex-1 bg-gray-200" />
+                        <span className="text-xs text-gray-400">OR</span>
+                        <div className="h-px flex-1 bg-gray-200" />
+                    </div>
+
+                    {/* Google login - পরে যোগ হবে */}
+                    <button
+                        type="button"
+                        onClick={handleGoogleLogin}
+                        className="w-full flex items-center justify-center gap-2.5 rounded-lg border border-gray-300 bg-white py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition"
+                    >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24">
+                            <path
+                                fill="#4285F4"
+                                d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v2.98h3.86c2.26-2.08 3.56-5.14 3.56-8.8z"
+                            />
+                            <path
+                                fill="#34A853"
+                                d="M12 24c3.24 0 5.95-1.08 7.93-2.93l-3.86-2.98c-1.08.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"
+                            />
+                            <path
+                                fill="#FBBC05"
+                                d="M5.27 14.28A7.19 7.19 0 0 1 4.89 12c0-.79.14-1.56.38-2.28V6.63H1.29A11.96 11.96 0 0 0 0 12c0 1.94.46 3.77 1.29 5.37l3.98-3.09z"
+                            />
+                            <path
+                                fill="#EA4335"
+                                d="M12 4.77c1.76 0 3.35.61 4.6 1.8l3.43-3.43C17.94 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.63l3.98 3.09C6.22 6.88 8.87 4.77 12 4.77z"
+                            />
+                        </svg>
+                        Continue with Google
+                    </button>
+
+                    {/* Footer */}
+                    <p className="mt-6 text-center text-sm text-gray-500">
+                        Don&apos;t have an account?{" "}
+                        <a href="/register" className="font-medium text-gray-900 hover:underline">
+                            Register
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={null}>
+            <LoginForm />
+        </Suspense>
+    );
+}
