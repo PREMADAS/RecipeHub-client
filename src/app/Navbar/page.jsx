@@ -9,7 +9,7 @@ import { toast } from "react-toastify";
 
 const NAV_LINKS = [
     { href: "/", label: "Home" },
-    { href: "/browse", label: "Browse Recipes" },
+    { href: "/BrowseRecipe", label: "Browse Recipes" },
 ];
 
 export default function Navbar() {
@@ -111,22 +111,22 @@ export default function Navbar() {
                                 </Link>
                             );
                         })}
-                    </nav>
 
-                    {user && (
-                        <Link
-                            href="/dashboard"
-                            className={`relative text-[14.5px] font-medium ml-0 transition-colors duration-150 ${pathname === "/dashboard"
-                                ? "text-[#2B2118]"
-                                : "text-[#4A3B2C]/70 hover:text-[#2B2118]"
-                                }`}
-                        >
-                            Dashboard
-                            {pathname === "/dashboard" && (
-                                <span className="absolute -bottom-[22px] left-0 right-0 h-[2px] bg-green-700 rounded-full" />
-                            )}
-                        </Link>
-                    )}
+                        {user && (
+                            <Link
+                                href="/private/UserDashboard"
+                                className={`relative text-[14.5px] font-medium transition-colors duration-150 ${pathname === "/dashboard"
+                                    ? "text-[#2B2118]"
+                                    : "text-[#4A3B2C]/70 hover:text-[#2B2118]"
+                                    }`}
+                            >
+                                Dashboard
+                                {pathname === "/dashboard" && (
+                                    <span className="absolute -bottom-[22px] left-0 right-0 h-[2px] bg-green-700 rounded-full" />
+                                )}
+                            </Link>
+                        )}
+                    </nav>
 
                     {/* Desktop actions */}
                     <div className="hidden md:flex items-center gap-3">
@@ -223,7 +223,7 @@ export default function Navbar() {
 
                     {user && (
                         <Link
-                            href="/dashboard"
+                            href="/private/UserDashboard"
                             onClick={() => setMenuOpen(false)}
                             className={`text-[15px] font-medium py-2.5 ${pathname === "/dashboard" ? "text-[#C1502E]" : "text-[#2B2118]"
                                 }`}

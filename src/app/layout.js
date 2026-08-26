@@ -4,6 +4,7 @@ import "react-toastify/dist/ReactToastify.css";
 import "./globals.css";
 import Navbar from "./Navbar/page";
 
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -27,8 +28,11 @@ export default function RootLayout({ children }) {
     >
       <body className="min-h-full flex flex-col">
         <div className="max-w-[1600px] w-full mx-auto px-4 md:px-8 lg:px-12">
+
           <Navbar></Navbar>
+
           <main>{children}</main>
+
         </div>
         <ToastContainer position="top-center" autoClose={3000} />
       </body>

@@ -49,7 +49,7 @@ export default function FeaturedRecipes() {
                     <h2 className="text-2xl font-bold">Featured Recipes</h2>
                     <div className="w-10 h-1 bg-green-600 rounded-full mt-1" />
                 </div>
-                <a href="/recipes" className="text-sm text-green-600 hover:underline">
+                <a href="/BrowseRecipe" className="text-sm text-green-600 hover:underline">
                     View all →
                 </a>
             </div>
