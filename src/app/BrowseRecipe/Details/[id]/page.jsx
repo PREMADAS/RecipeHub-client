@@ -1,8 +1,7 @@
 "use client";
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import React, { useEffect, useState } from "react";
-import { loadStripe } from "@stripe/stripe-js";
+import React, { useEffect, useState, useCallback } from "react";
 import {
     Heart,
     Bookmark,
@@ -19,8 +18,11 @@ import {
     CheckCircle2,
 } from "lucide-react";
 
-const SERVER = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+const SERVER = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+// NOTE: loadStripe/stripePromise removed — the backend returns a hosted
+// Checkout `url` directly (redirect flow), so @stripe/stripe-js's
+// redirectToCheckout() is never actually used. If you later switch to
+// Stripe Elements (embedded form) you'll need it back.
 
 export default function RecipeDetails() {
     const params = useParams();
@@ -36,8 +38,9 @@ export default function RecipeDetails() {
     const [likeCount, setLikeCount] = useState(0);
     const [favorited, setFavorited] = useState(false);
 
-    // Purchase relative states
+    // Purchase related states
     const [isPurchased, setIsPurchased] = useState(false);
+    const [purchaseStatusLoading, setPurchaseStatusLoading] = useState(true);
     const [purchaseLoading, setPurchaseLoading] = useState(false);
     const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
@@ -46,6 +49,30 @@ export default function RecipeDetails() {
     const [actionMsg, setActionMsg] = useState("");
 
     const [checkedIngredients, setCheckedIngredients] = useState({});
+
+    // ---------- Fetch confirmed purchase status from the SERVER ----------
+    // Never trust the URL alone for this — the backend's Stripe webhook
+    // is the only source of truth for whether payment actually succeeded.
+    const fetchPurchaseStatus = useCallback(async () => {
+        if (!id) return;
+        try {
+            setPurchaseStatusLoading(true);
+            const res = await fetch(`${SERVER}/api/recipes/${id}/purchase-status`, {
+                credentials: "include",
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setIsPurchased(!!data.purchased);
+            } else if (res.status === 401) {
+                // not logged in — treat as not purchased, don't redirect away
+                setIsPurchased(false);
+            }
+        } catch (error) {
+            console.error("Error fetching purchase status:", error);
+        } finally {
+            setPurchaseStatusLoading(false);
+        }
+    }, [id]);
 
     // Fetch Recipe Data
     useEffect(() => {
@@ -69,35 +96,64 @@ export default function RecipeDetails() {
                 setLikeCount(recipeData.likeCount || recipeData.likes?.length || 0);
                 setLiked(recipeData.isLiked || false);
                 setFavorited(recipeData.isFavorited || false);
-                setIsPurchased(recipeData.isPurchased || false);
             } catch (error) {
                 console.error("Error fetching recipe:", error);
             } finally {
-                setLoading(false); // Fix: Loading false করা হয়েছে
+                setLoading(false);
             }
         };
 
         fetchRecipeDetails();
-    }, [id]);
+        fetchPurchaseStatus();
+    }, [id, fetchPurchaseStatus]);
 
-    // Check Stripe Return Status from URL
+    // ---------- Check Stripe return status from URL ----------
+    // The backend sends back `?purchase=success` or `?purchase=cancelled`
+    // (see success_url / cancel_url in the checkout route).
+    // On success we DON'T flip isPurchased directly from the URL —
+    // we re-fetch the real status from the server, because the Stripe
+    // webhook may take a second or two to arrive and write to the
+    // payments collection. We poll briefly to cover that race.
     useEffect(() => {
-        const success = searchParams.get("success");
-        const canceled = searchParams.get("canceled");
+        const purchase = searchParams.get("purchase");
+        if (!purchase) return;
 
-        if (success === "true") {
-            setIsPurchased(true);
+        if (purchase === "success") {
+            setActionMsg("Payment received — confirming with the server…");
+
+            let attempts = 0;
+            const maxAttempts = 6; // ~12s total
+            const poll = setInterval(async () => {
+                attempts += 1;
+                await fetchPurchaseStatus();
+                if (attempts >= maxAttempts) clearInterval(poll);
+            }, 2000);
+
+            // also check once immediately
+            fetchPurchaseStatus();
+
+            return () => clearInterval(poll);
+        }
+
+        if (purchase === "cancelled") {
+            setActionMsg("Payment was cancelled. You haven't been charged.");
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams]);
+
+    // Once isPurchased flips true after a successful-payment redirect, show the message
+    useEffect(() => {
+        if (isPurchased && searchParams.get("purchase") === "success") {
             setActionMsg("Payment successful! Recipe has been added to your collection 🎉");
         }
-
-        if (canceled === "true") {
-            setActionMsg("Payment was canceled. You haven't been charged.");
-        }
-    }, [searchParams]);
+    }, [isPurchased, searchParams]);
 
     const handleLike = async () => {
         try {
-            const res = await fetch(`${SERVER}/api/recipes/${id}/like`, { method: "POST", credentials: "include" });
+            const res = await fetch(`${SERVER}/api/recipes/${id}/like`, {
+                method: "POST",
+                credentials: "include",
+            });
             const data = await res.json();
             if (res.ok) {
                 setLiked(data.liked);
@@ -112,7 +168,10 @@ export default function RecipeDetails() {
 
     const handleFavorite = async () => {
         try {
-            const res = await fetch(`${SERVER}/api/recipes/${id}/favorite`, { method: "POST", credentials: "include" });
+            const res = await fetch(`${SERVER}/api/recipes/${id}/favorite`, {
+                method: "POST",
+                credentials: "include",
+            });
             const data = await res.json();
             if (res.ok) {
                 setFavorited(data.favorited);
@@ -128,7 +187,8 @@ export default function RecipeDetails() {
     const handlePurchase = async () => {
         setPurchaseLoading(true);
         try {
-            const res = await fetch(`${SERVER}/api/recipes/${id}/create-checkout-session`, {
+            // Matches backend: app.post("/api/recipes/:id/checkout", ...)
+            const res = await fetch(`${SERVER}/api/recipes/${id}/checkout`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -136,20 +196,23 @@ export default function RecipeDetails() {
             const data = await res.json();
 
             if (res.ok && data.url) {
+                // Backend returns a hosted Checkout Session URL — just redirect.
                 window.location.href = data.url;
-            } else if (res.ok && data.sessionId) {
-                const stripe = await stripePromise;
-                await stripe.redirectToCheckout({ sessionId: data.sessionId });
-            } else if (res.status === 401) {
-                router.push("/login");
-            } else {
-                setActionMsg(data.message || "Failed to initiate checkout.");
+                return;
             }
+
+            if (res.status === 401) {
+                router.push("/login");
+                return;
+            }
+
+            setActionMsg(data.error || "Failed to initiate checkout.");
         } catch (error) {
             console.error("Purchase failed:", error);
             setActionMsg("Something went wrong during payment connection.");
         } finally {
             setPurchaseLoading(false);
+            setShowPurchaseModal(false);
         }
     };
 
@@ -265,7 +328,12 @@ export default function RecipeDetails() {
 
                 {/* ---------- Action Bar ---------- */}
                 <div className="flex flex-wrap items-center gap-3 mt-8 pb-6 border-b border-[#E5D9BE]">
-                    {isPurchased ? (
+                    {purchaseStatusLoading ? (
+                        <div className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#E5D9BE]/40 text-[#4A3B2C]/60 text-[14px] font-semibold">
+                            <Loader2 size={16} className="animate-spin" />
+                            Checking access…
+                        </div>
+                    ) : isPurchased ? (
                         <div className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-green-100 border border-green-300 text-green-800 text-[14px] font-bold">
                             <CheckCircle2 size={18} className="text-green-600" />
                             Purchased
