@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation"; // useParams এবং useRouter যুক্ত করা হলো
 import { UploadCloud, X, Plus } from "lucide-react";
-
 
 const SERVER = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
 const IMGBB_API_KEY = process.env.NEXT_PUBLIC_IMGBB_API_KEY;
@@ -11,11 +11,15 @@ const CATEGORY_OPTIONS = ["Breakfast", "Lunch", "Dinner", "Dessert", "Snack", "D
 const CUISINE_OPTIONS = ["Bangladeshi", "Indian", "Chinese", "Italian", "Thai", "Continental"];
 const DIFFICULTY_OPTIONS = ["Easy", "Medium", "Hard"];
 
-
 export default function AddRecipeForm() {
+    const params = useParams(); // URL dynamic parameter পাওয়ার জন্য
+    const router = useRouter();
+    const recipeId = params?.id; // URL এ id থাকলে সেটি এখানে আসবে
+    const isEditMode = Boolean(recipeId);
+
     const [form, setForm] = useState({
         name: "",
-        image: null, // File object, upload to imgbb later
+        image: null, // File object, new upload for imgbb
         imagePreview: null,
         category: "",
         cuisine: "",
@@ -24,9 +28,50 @@ export default function AddRecipeForm() {
         ingredients: [""],
         instructions: [""],
     });
+
+    const [loadingData, setLoadingData] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+
+    // ১. Edit Mode হলে পুরনো Recipe ডাটা নিয়ে আসা
+    useEffect(() => {
+        if (!isEditMode) return;
+
+        const fetchRecipe = async () => {
+            setLoadingData(true);
+            try {
+                const res = await fetch(`${SERVER}/api/recipes/${recipeId}`, {
+                    credentials: "include",
+                });
+                const data = await res.json();
+
+                if (res.ok && data.recipe) {
+                    const r = data.recipe;
+                    setForm({
+                        name: r.recipeName || "",
+                        image: null,
+                        imagePreview: r.recipeImage || null, // আগের ছবির URL দেখানো
+                        category: r.category || "",
+                        cuisine: r.cuisineType || "",
+                        difficulty: r.difficultyLevel || "",
+                        prepTime: r.preparationTime || "",
+                        ingredients: r.ingredients?.length ? r.ingredients : [""],
+                        instructions: r.instructions?.length ? r.instructions : [""],
+                    });
+                } else {
+                    setError("Failed to fetch recipe details.");
+                }
+            } catch (err) {
+                console.error("Error fetching recipe:", err);
+                setError("Error loading recipe data.");
+            } finally {
+                setLoadingData(false);
+            }
+        };
+
+        fetchRecipe();
+    }, [recipeId, isEditMode]);
 
     const updateField = (field, value) => {
         setForm((prev) => ({ ...prev, [field]: value }));
@@ -37,7 +82,6 @@ export default function AddRecipeForm() {
         if (!file) return;
         updateField("image", file);
         updateField("imagePreview", URL.createObjectURL(file));
-        // TODO: upload `file` to imgbb here, store returned URL for `recipes` collection
     };
 
     const updateListItem = (field, index, value) => {
@@ -64,9 +108,9 @@ export default function AddRecipeForm() {
         setError("");
         setSuccess("");
 
-        // Basic validation
-        if (!form.name || !form.image || !form.category || !form.cuisine || !form.difficulty || !form.prepTime) {
-            setError("Please fill in all fields and select an image.");
+        // Validation Check (Edit Mode-এ নতুন ইমেজ না দিলে আগের ইমেজ ব্যবহার করা হবে)
+        if (!form.name || (!form.image && !form.imagePreview) || !form.category || !form.cuisine || !form.difficulty || !form.prepTime) {
+            setError("Please fill in all required fields.");
             return;
         }
 
@@ -84,27 +128,36 @@ export default function AddRecipeForm() {
 
         setSubmitting(true);
         try {
-            // ১. Image টা imgbb তে আপলোড করা
-            const imgFormData = new FormData();
-            imgFormData.append("image", form.image);
+            let imageUrl = form.imagePreview;
 
-            const imgRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-                method: "POST",
-                body: imgFormData,
-            });
-            const imgData = await imgRes.json();
+            // ২. নতুন ফাইল সিলেক্ট করলে তা ImgBB তে আপলোড করা হবে
+            if (form.image) {
+                const imgFormData = new FormData();
+                imgFormData.append("image", form.image);
 
-            if (!imgData.success) {
-                setError("Image upload failed. Please try again.");
-                setSubmitting(false);
-                return;
+                const imgRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                    method: "POST",
+                    body: imgFormData,
+                });
+                const imgData = await imgRes.json();
+
+                if (!imgData.success) {
+                    setError("Image upload failed. Please try again.");
+                    setSubmitting(false);
+                    return;
+                }
+                imageUrl = imgData.data.url;
             }
 
-            const imageUrl = imgData.data.url;
+            // ৩. API Call Dynamic করা (POST নাকি PUT)
+            const endpoint = isEditMode
+                ? `${SERVER}/api/recipes/${recipeId}`
+                : `${SERVER}/api/recipes`;
 
-            // ২. Recipe টা backend এ পাঠানো
-            const res = await fetch(`${SERVER}/api/recipes`, {
-                method: "POST",
+            const method = isEditMode ? "PUT" : "POST";
+
+            const res = await fetch(endpoint, {
+                method,
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
                 body: JSON.stringify({
@@ -127,31 +180,47 @@ export default function AddRecipeForm() {
                 return;
             }
 
-            setSuccess("Recipe added successfully!");
-            setForm({
-                name: "",
-                image: null,
-                imagePreview: null,
-                category: "",
-                cuisine: "",
-                difficulty: "",
-                prepTime: "",
-                ingredients: [""],
-                instructions: [""],
-            });
+            setSuccess(isEditMode ? "Recipe updated successfully!" : "Recipe added successfully!");
+
+            if (!isEditMode) {
+                setForm({
+                    name: "",
+                    image: null,
+                    imagePreview: null,
+                    category: "",
+                    cuisine: "",
+                    difficulty: "",
+                    prepTime: "",
+                    ingredients: [""],
+                    instructions: [""],
+                });
+            } else {
+                // Edit শেষ হলে ব্যবহারকারীকে অন্য পেজে রিডাইরেক্ট করে দিতে পারেন
+                setTimeout(() => {
+                    router.push('/private/UserDashboard/MyRecipe'); // আপনার পেজের রাউট দিন
+                }, 1500);
+            }
         } catch (err) {
-            console.error("Add recipe error:", err);
+            console.error("Save recipe error:", err);
             setError("Something went wrong. Please try again.");
         } finally {
             setSubmitting(false);
         }
     };
 
+    if (loadingData) {
+        return <div className="p-6 text-center text-[#4A3B2C]">Loading recipe details...</div>;
+    }
+
     return (
         <form
             onSubmit={handleSubmit}
             className="rounded-2xl border border-[#E5D9BE] bg-white px-6 py-7 flex flex-col gap-6"
         >
+            <h2 className="text-xl font-bold text-[#2B2118]">
+                {isEditMode ? "Edit Recipe" : "Add New Recipe"}
+            </h2>
+
             {/* Recipe Name */}
             <Field label="Recipe Name">
                 <input
@@ -163,7 +232,7 @@ export default function AddRecipeForm() {
                 />
             </Field>
 
-            {/* Recipe Image Upload (imgbb) */}
+            {/* Recipe Image Upload */}
             <Field label="Recipe Image">
                 <label className="flex items-center gap-4 cursor-pointer">
                     <div className="w-20 h-20 rounded-xl border border-dashed border-[#E5D9BE] bg-[#FBF8F2] flex items-center justify-center overflow-hidden shrink-0">
@@ -179,7 +248,7 @@ export default function AddRecipeForm() {
                     </div>
                     <div>
                         <span className="inline-block text-[13px] font-semibold text-[#2B2118] bg-[#F0EADA] rounded-lg px-3.5 py-2 hover:bg-[#E9E0C6] transition-colors duration-150">
-                            {form.image ? "Change Image" : "Upload Image"}
+                            {form.imagePreview ? "Change Image" : "Upload Image"}
                         </span>
                         <p className="text-[11.5px] text-[#4A3B2C]/50 mt-1.5">
                             Uploaded via imgbb — PNG or JPG
@@ -200,7 +269,7 @@ export default function AddRecipeForm() {
                     <select
                         value={form.category}
                         onChange={(e) => updateField("category", e.target.value)}
-                        className="w-full rounded-xl border border-[#E5D9BE] bg-[#FBF8F2] px-3.5 py-2.5 text-[13.5px] text-[#2B2118] placeholder:text-[#4A3B2C]/40 focus:outline-none focus:border-green-600 focus:bg-white transition-colors duration-150"
+                        className="w-full rounded-xl border border-[#E5D9BE] bg-[#FBF8F2] px-3.5 py-2.5 text-[13.5px] text-[#2B2118] focus:outline-none focus:border-green-600 focus:bg-white transition-colors duration-150"
                     >
                         <option value="">Select category</option>
                         {CATEGORY_OPTIONS.map((opt) => (
@@ -215,7 +284,7 @@ export default function AddRecipeForm() {
                     <select
                         value={form.cuisine}
                         onChange={(e) => updateField("cuisine", e.target.value)}
-                        className="w-full rounded-xl border border-[#E5D9BE] bg-[#FBF8F2] px-3.5 py-2.5 text-[13.5px] text-[#2B2118] placeholder:text-[#4A3B2C]/40 focus:outline-none focus:border-green-600 focus:bg-white transition-colors duration-150"
+                        className="w-full rounded-xl border border-[#E5D9BE] bg-[#FBF8F2] px-3.5 py-2.5 text-[13.5px] text-[#2B2118] focus:outline-none focus:border-green-600 focus:bg-white transition-colors duration-150"
                     >
                         <option value="">Select cuisine</option>
                         {CUISINE_OPTIONS.map((opt) => (
@@ -233,7 +302,7 @@ export default function AddRecipeForm() {
                     <select
                         value={form.difficulty}
                         onChange={(e) => updateField("difficulty", e.target.value)}
-                        className="w-full rounded-xl border border-[#E5D9BE] bg-[#FBF8F2] px-3.5 py-2.5 text-[13.5px] text-[#2B2118] placeholder:text-[#4A3B2C]/40 focus:outline-none focus:border-green-600 focus:bg-white transition-colors duration-150"
+                        className="w-full rounded-xl border border-[#E5D9BE] bg-[#FBF8F2] px-3.5 py-2.5 text-[13.5px] text-[#2B2118] focus:outline-none focus:border-green-600 focus:bg-white transition-colors duration-150"
                     >
                         <option value="">Select difficulty</option>
                         {DIFFICULTY_OPTIONS.map((opt) => (
@@ -250,7 +319,7 @@ export default function AddRecipeForm() {
                         value={form.prepTime}
                         onChange={(e) => updateField("prepTime", e.target.value)}
                         placeholder="e.g. 45 mins"
-                        className="w-full rounded-xl border border-[#E5D9BE] bg-[#FBF8F2] px-3.5 py-2.5 text-[13.5px] text-[#2B2118] placeholder:text-[#4A3B2C]/40 focus:outline-none focus:border-green-600 focus:bg-white transition-colors duration-150"
+                        className="w-full rounded-xl border border-[#E5D9BE] bg-[#FBF8F2] px-3.5 py-2.5 text-[13.5px] text-[#2B2118] focus:outline-none focus:border-green-600 focus:bg-white transition-colors duration-150"
                     />
                 </Field>
             </div>
@@ -298,7 +367,11 @@ export default function AddRecipeForm() {
                     disabled={submitting}
                     className="text-[13.5px] font-semibold text-white bg-green-700 rounded-xl px-5 py-2.5 hover:bg-green-800 disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-150"
                 >
-                    {submitting ? "Saving..." : "Save Recipe"}
+                    {submitting
+                        ? "Saving..."
+                        : isEditMode
+                            ? "Update Recipe"
+                            : "Save Recipe"}
                 </button>
             </div>
         </form>

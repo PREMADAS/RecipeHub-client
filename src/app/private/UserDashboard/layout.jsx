@@ -16,7 +16,7 @@ import {
 
 const NAV_ITEMS = [
     { href: "/private/UserDashboard", key: "overview", label: "Overview", icon: LayoutGrid },
-    { href: "/private/UserDashboard/Overview", key: "my-recipes", label: "My Recipes", icon: BookOpen },
+    { href: "/private/UserDashboard/MyRecipe", key: "my-recipes", label: "My Recipes", icon: BookOpen },
     { href: "/private/UserDashboard/AddRecipe", key: "add-recipe", label: "Add Recipe", icon: CirclePlus },
     { href: "/private/UserDashboard/Favorites", key: "favorites", label: "My Favorites", icon: Heart },
     { href: "/private/UserDashboard/Purchased", key: "purchased", label: "My Purchased Recipes", icon: ShoppingBag },
@@ -75,7 +75,7 @@ export default function UserDashboardLayout({ children }) {
     }, [router]);
 
     return (
-        <div className="min-h-screen bg-[#FBF8F2]">
+        <div className="min-h-screen bg-white">
             <div className="max-w-6xl mx-auto px-6 py-10">
                 <div className="flex flex-col md:flex-row gap-8">
                     {/* Sidebar */}
