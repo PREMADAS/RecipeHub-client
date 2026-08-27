@@ -1,7 +1,8 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { loadStripe } from "@stripe/stripe-js";
 import {
     Heart,
     Bookmark,
@@ -14,14 +15,18 @@ import {
     X,
     Loader2,
     Sparkles,
+    ShoppingCart,
+    CheckCircle2,
 } from "lucide-react";
 
 const SERVER = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
 export default function RecipeDetails() {
     const params = useParams();
     const router = useRouter();
-    const id = params.id;
+    const searchParams = useSearchParams();
+    const id = params?.id;
 
     const [recipe, setRecipe] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -31,30 +36,64 @@ export default function RecipeDetails() {
     const [likeCount, setLikeCount] = useState(0);
     const [favorited, setFavorited] = useState(false);
 
+    // Purchase relative states
+    const [isPurchased, setIsPurchased] = useState(false);
+    const [purchaseLoading, setPurchaseLoading] = useState(false);
+    const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+
     const [showReportModal, setShowReportModal] = useState(false);
     const [reportReason, setReportReason] = useState("");
     const [actionMsg, setActionMsg] = useState("");
 
     const [checkedIngredients, setCheckedIngredients] = useState({});
 
+    // Fetch Recipe Data
     useEffect(() => {
         if (!id) return;
-        const fetchRecipe = async () => {
+
+        const fetchRecipeDetails = async () => {
             try {
-                const res = await fetch(`${SERVER}/api/recipes/${id}`, { credentials: "include" });
-                const data = await res.json();
-                if (res.ok) {
-                    setRecipe(data.recipe);
-                    setLikeCount(data.recipe.likesCount || 0);
+                setLoading(true);
+                const res = await fetch(`${SERVER}/api/recipes/${id}`, {
+                    credentials: "include",
+                });
+
+                if (!res.ok) {
+                    throw new Error("Failed to fetch recipe");
                 }
+
+                const data = await res.json();
+                const recipeData = data.recipe || data;
+
+                setRecipe(recipeData);
+                setLikeCount(recipeData.likeCount || recipeData.likes?.length || 0);
+                setLiked(recipeData.isLiked || false);
+                setFavorited(recipeData.isFavorited || false);
+                setIsPurchased(recipeData.isPurchased || false);
             } catch (error) {
-                console.error("Failed to fetch recipe:", error);
+                console.error("Error fetching recipe:", error);
             } finally {
-                setLoading(false);
+                setLoading(false); // Fix: Loading false করা হয়েছে
             }
         };
-        fetchRecipe();
+
+        fetchRecipeDetails();
     }, [id]);
+
+    // Check Stripe Return Status from URL
+    useEffect(() => {
+        const success = searchParams.get("success");
+        const canceled = searchParams.get("canceled");
+
+        if (success === "true") {
+            setIsPurchased(true);
+            setActionMsg("Payment successful! Recipe has been added to your collection 🎉");
+        }
+
+        if (canceled === "true") {
+            setActionMsg("Payment was canceled. You haven't been charged.");
+        }
+    }, [searchParams]);
 
     const handleLike = async () => {
         try {
@@ -82,6 +121,35 @@ export default function RecipeDetails() {
             }
         } catch (error) {
             console.error("Favorite failed:", error);
+        }
+    };
+
+    // ---------- Stripe Purchase Handler ----------
+    const handlePurchase = async () => {
+        setPurchaseLoading(true);
+        try {
+            const res = await fetch(`${SERVER}/api/recipes/${id}/create-checkout-session`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+            });
+            const data = await res.json();
+
+            if (res.ok && data.url) {
+                window.location.href = data.url;
+            } else if (res.ok && data.sessionId) {
+                const stripe = await stripePromise;
+                await stripe.redirectToCheckout({ sessionId: data.sessionId });
+            } else if (res.status === 401) {
+                router.push("/login");
+            } else {
+                setActionMsg(data.message || "Failed to initiate checkout.");
+            }
+        } catch (error) {
+            console.error("Purchase failed:", error);
+            setActionMsg("Something went wrong during payment connection.");
+        } finally {
+            setPurchaseLoading(false);
         }
     };
 
@@ -122,7 +190,11 @@ export default function RecipeDetails() {
         );
     }
 
-    const images = recipe.recipeImage ? [recipe.recipeImage] : [];
+    const images = Array.isArray(recipe.recipeImage)
+        ? recipe.recipeImage
+        : recipe.recipeImage
+            ? [recipe.recipeImage]
+            : [];
 
     return (
         <div className="min-h-screen bg-[#FBF8F2]">
@@ -193,9 +265,26 @@ export default function RecipeDetails() {
 
                 {/* ---------- Action Bar ---------- */}
                 <div className="flex flex-wrap items-center gap-3 mt-8 pb-6 border-b border-[#E5D9BE]">
+                    {isPurchased ? (
+                        <div className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-green-100 border border-green-300 text-green-800 text-[14px] font-bold">
+                            <CheckCircle2 size={18} className="text-green-600" />
+                            Purchased
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => setShowPurchaseModal(true)}
+                            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-green-700 hover:bg-green-800 text-white text-[14px] font-semibold shadow-md transition-all active:scale-95"
+                        >
+                            <ShoppingCart size={17} />
+                            Buy Recipe {recipe.price ? `($${recipe.price})` : ""}
+                        </button>
+                    )}
+
                     <button
                         onClick={handleLike}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-full border text-[14px] font-semibold transition-colors ${liked ? "bg-[#B23B3B] border-[#B23B3B] text-white" : "border-[#E5D9BE] text-[#2B2118] hover:border-[#B23B3B]"
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-full border text-[14px] font-semibold transition-colors ${liked
+                            ? "bg-[#B23B3B] border-[#B23B3B] text-white"
+                            : "border-[#E5D9BE] text-[#2B2118] hover:border-[#B23B3B]"
                             }`}
                     >
                         <Heart size={16} className={liked ? "fill-white" : ""} />
@@ -204,7 +293,9 @@ export default function RecipeDetails() {
 
                     <button
                         onClick={handleFavorite}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-full border text-[14px] font-semibold transition-colors ${favorited ? "bg-amber-400 border-amber-400 text-[#2B2118]" : "border-[#E5D9BE] text-[#2B2118] hover:border-amber-400"
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-full border text-[14px] font-semibold transition-colors ${favorited
+                            ? "bg-amber-400 border-amber-400 text-[#2B2118]"
+                            : "border-[#E5D9BE] text-[#2B2118] hover:border-amber-400"
                             }`}
                     >
                         <Bookmark size={16} className={favorited ? "fill-[#2B2118]" : ""} />
@@ -279,6 +370,46 @@ export default function RecipeDetails() {
                 </div>
             </div>
 
+            {/* ---------- Purchase Modal ---------- */}
+            {showPurchaseModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+                    <div className="bg-white rounded-2xl w-full max-w-md p-6 relative">
+                        <button
+                            onClick={() => setShowPurchaseModal(false)}
+                            className="absolute top-4 right-4 text-[#4A3B2C]/50 hover:text-[#2B2118]"
+                        >
+                            <X size={20} />
+                        </button>
+                        <h3
+                            className="text-[20px] text-[#2B2118] mb-2"
+                            style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 600 }}
+                        >
+                            Confirm Purchase
+                        </h3>
+                        <p className="text-[14px] text-[#4A3B2C]/80 mb-6">
+                            Are you sure you want to purchase <strong>{recipe.recipeName}</strong> for{" "}
+                            <span className="text-green-700 font-bold">${recipe.price || "Free"}</span>?
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setShowPurchaseModal(false)}
+                                className="px-4 py-2 rounded-full text-[13px] font-semibold text-[#4A3B2C] hover:bg-[#FBF8F2]"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handlePurchase}
+                                disabled={purchaseLoading}
+                                className="flex items-center gap-2 px-5 py-2 rounded-full text-[13px] font-semibold text-white bg-green-700 hover:bg-green-800 disabled:opacity-50"
+                            >
+                                {purchaseLoading && <Loader2 size={14} className="animate-spin" />}
+                                Confirm & Pay
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ---------- Report Modal ---------- */}
             {showReportModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
@@ -295,7 +426,9 @@ export default function RecipeDetails() {
                         >
                             Report this recipe
                         </h3>
-                        <p className="text-[13px] text-[#4A3B2C]/60 mb-4">Let us know what's wrong — we'll take a look.</p>
+                        <p className="text-[13px] text-[#4A3B2C]/60 mb-4">
+                            Let us know what's wrong — we'll take a look.
+                        </p>
                         <textarea
                             placeholder="Why are you reporting this recipe?"
                             value={reportReason}
