@@ -15,6 +15,8 @@ export default function FeaturedRecipes() {
             try {
                 const res = await fetch(`${BACKEND_URL}/api/recipes/featured`);
                 const data = await res.json();
+                // এই route শুধুমাত্র featureCollection থেকে data দেয় —
+                // অর্থাৎ Admin যেগুলোকে "Feature" করেছে শুধু সেগুলোই এখানে আসে
                 setRecipes(data.recipes || []);
             } catch (err) {
                 console.error("Failed to load featured recipes", err);
@@ -56,14 +58,15 @@ export default function FeaturedRecipes() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
                 {recipes.map((recipe) => (
-                    <div
+                    <a
                         key={recipe._id}
-                        className="rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+                        href={`/recipes/${recipe.recipeId}`}
+                        className="rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow block"
                     >
                         <div className="relative aspect-[4/3]">
                             <Image
                                 src={recipe.image || "/placeholder-recipe.jpg"}
-                                alt={recipe.name}
+                                alt={recipe.name || "Recipe image"}
                                 fill
                                 sizes="(max-width: 768px) 50vw, 25vw"
                                 className="object-cover"
@@ -82,7 +85,7 @@ export default function FeaturedRecipes() {
                                 <span>⏱ {recipe.prepTime}</span>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 ))}
             </div>
         </section>

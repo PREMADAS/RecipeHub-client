@@ -9,8 +9,7 @@ function LoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
-
-    const redirectTo = searchParams.get("redirect") || "/";
+    const redirectTo = searchParams.get("redirect");
 
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -24,6 +23,39 @@ function LoginForm() {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    // Decide where to send the user after a successful login.
+    // - Admins always land in AdminDashboard (unless the intended route
+    //   they were trying to reach was already an admin route).
+    // - Normal users always land in UserDashboard (unless the intended
+    //   route they were trying to reach was already a user route).
+    // - Any non-dashboard intended route (e.g. a recipe details page)
+    //   is respected as-is for both roles.
+    const getPostLoginRoute = (role) => {
+        const adminHome = "/private/AdminDashboard";
+        const userHome = "/private/UserDashboard";
+
+        if (redirectTo) {
+            const isAdminRoute = redirectTo.startsWith("/private/AdminDashboard");
+            const isUserRoute = redirectTo.startsWith("/private/UserDashboard");
+
+            // If the intended route belongs to the other role's dashboard,
+            // don't honor it — send them to their own dashboard instead.
+            if (isAdminRoute && role !== "admin") {
+                return userHome;
+            }
+            if (isUserRoute && role === "admin") {
+                return adminHome;
+            }
+
+            // Otherwise the intended route is safe to honor
+            // (matches their role's dashboard, or isn't a dashboard route at all).
+            return redirectTo;
+        }
+
+        // No intended route — default per role
+        return role === "admin" ? adminHome : userHome;
     };
 
     const handleSubmit = async (e) => {
@@ -55,7 +87,9 @@ function LoginForm() {
             }
 
             toast.success("Login successful!");
-            router.push(redirectTo); // intended route এ পাঠানো, না থাকলে home
+
+            const destination = getPostLoginRoute(data.user?.role);
+            router.push(destination);
         } catch (err) {
             console.error(err);
             toast.error("Something went wrong. Please try again.");
