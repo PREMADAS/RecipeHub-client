@@ -3,6 +3,8 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./globals.css";
 import Navbar from "./Navbar/page";
+import Footer from "./Footer/page";
+import Provider from "./Providers/page";
 
 
 const geistSans = Geist({
@@ -27,15 +29,17 @@ export default function RootLayout({ children }) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <div className="max-w-[1600px] w-full mx-auto px-4 md:px-8 lg:px-12">
+        <Provider>
+          <div className="max-w-[1600px] w-full mx-auto px-4 md:px-8 lg:px-12">
+            <Navbar></Navbar>
+            <main>{children}</main>
+          </div>
 
-          <Navbar></Navbar>
+          <ToastContainer position="top-center" autoClose={3000} />
 
-          <main>{children}</main>
-
-        </div>
-        <ToastContainer position="top-center" autoClose={3000} />
+          <Footer></Footer>
+        </Provider>
       </body>
-    </html>
+    </html >
   );
 }

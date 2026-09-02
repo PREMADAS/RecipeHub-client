@@ -40,6 +40,7 @@ export default function RecipeDetails() {
 
     // Purchase related states
     const [isPurchased, setIsPurchased] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(null); // null = unknown yet, true/false once known
     const [purchaseStatusLoading, setPurchaseStatusLoading] = useState(true);
     const [purchaseLoading, setPurchaseLoading] = useState(false);
     const [showPurchaseModal, setShowPurchaseModal] = useState(false);
@@ -50,9 +51,17 @@ export default function RecipeDetails() {
 
     const [checkedIngredients, setCheckedIngredients] = useState({});
 
+    // Where to send someone if they need to log in first, so they land
+    // back on this exact recipe after logging in (handled by
+    // getPostLoginRoute on the login page, which respects non-dashboard
+    // intended routes as-is).
+    const loginRedirectUrl = `/Login?redirect=/BrowseRecipe/${id}`;
+
     // ---------- Fetch confirmed purchase status from the SERVER ----------
     // Never trust the URL alone for this — the backend's Stripe webhook
     // is the only source of truth for whether payment actually succeeded.
+    // This call also doubles as our "is the user logged in" check, since
+    // the route requires verifyToken and returns 401 when not authenticated.
     const fetchPurchaseStatus = useCallback(async () => {
         if (!id) return;
         try {
@@ -63,9 +72,11 @@ export default function RecipeDetails() {
             if (res.ok) {
                 const data = await res.json();
                 setIsPurchased(!!data.purchased);
+                setIsLoggedIn(true);
             } else if (res.status === 401) {
                 // not logged in — treat as not purchased, don't redirect away
                 setIsPurchased(false);
+                setIsLoggedIn(false);
             }
         } catch (error) {
             console.error("Error fetching purchase status:", error);
@@ -159,7 +170,7 @@ export default function RecipeDetails() {
                 setLiked(data.liked);
                 setLikeCount(data.likeCount);
             } else if (res.status === 401) {
-                router.push("/login");
+                router.push(loginRedirectUrl);
             }
         } catch (error) {
             console.error("Like failed:", error);
@@ -176,11 +187,23 @@ export default function RecipeDetails() {
             if (res.ok) {
                 setFavorited(data.favorited);
             } else if (res.status === 401) {
-                router.push("/login");
+                router.push(loginRedirectUrl);
             }
         } catch (error) {
             console.error("Favorite failed:", error);
         }
+    };
+
+    // ---------- Buy button click ----------
+    // Checked BEFORE opening the purchase modal, so a logged-out user
+    // is sent straight to login (with a redirect back here) instead of
+    // seeing a confirmation modal that will just fail with a 401.
+    const handleBuyClick = () => {
+        if (isLoggedIn === false) {
+            router.push(loginRedirectUrl);
+            return;
+        }
+        setShowPurchaseModal(true);
     };
 
     // ---------- Stripe Purchase Handler ----------
@@ -202,7 +225,9 @@ export default function RecipeDetails() {
             }
 
             if (res.status === 401) {
-                router.push("/login");
+                // Session may have expired between page load and clicking pay —
+                // send them to log in and come straight back to this recipe.
+                router.push(loginRedirectUrl);
                 return;
             }
 
@@ -230,7 +255,7 @@ export default function RecipeDetails() {
                 setShowReportModal(false);
                 setReportReason("");
             } else if (res.status === 401) {
-                router.push("/login");
+                router.push(loginRedirectUrl);
             }
         } catch (error) {
             console.error("Report failed:", error);
@@ -340,7 +365,7 @@ export default function RecipeDetails() {
                         </div>
                     ) : (
                         <button
-                            onClick={() => setShowPurchaseModal(true)}
+                            onClick={handleBuyClick}
                             className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-green-700 hover:bg-green-800 text-white text-[14px] font-semibold shadow-md transition-all active:scale-95"
                         >
                             <ShoppingCart size={17} />

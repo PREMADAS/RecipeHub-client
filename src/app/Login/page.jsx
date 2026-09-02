@@ -4,6 +4,8 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { GoogleLogin } from "@react-oauth/google";
+import Link from "next/link";
 
 function LoginForm() {
     const router = useRouter();
@@ -98,8 +100,45 @@ function LoginForm() {
         }
     };
 
-    const handleGoogleLogin = () => {
-        // পরে যোগ হবে
+    // Called by the GoogleLogin component with a credential (Google ID token)
+    const handleGoogleSuccess = async (credentialResponse) => {
+        setError("");
+        setLoading(true);
+
+        try {
+            const res = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ credential: credentialResponse.credential }),
+                }
+            );
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                toast.error(data.error || "Google login failed. Please try again.");
+                setError(data.error || "Google login failed. Please try again.");
+                setLoading(false);
+                return;
+            }
+
+            toast.success("Login successful!");
+
+            const destination = getPostLoginRoute(data.user?.role);
+            router.push(destination);
+        } catch (err) {
+            console.error(err);
+            toast.error("Something went wrong. Please try again.");
+            setError("Something went wrong. Please try again.");
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleError = () => {
+        toast.error("Google login failed. Please try again.");
     };
 
     return (
@@ -205,39 +244,24 @@ function LoginForm() {
                         <div className="h-px flex-1 bg-gray-200" />
                     </div>
 
-                    {/* Google login - পরে যোগ হবে */}
-                    <button
-                        type="button"
-                        onClick={handleGoogleLogin}
-                        className="w-full flex items-center justify-center gap-2.5 rounded-lg border border-gray-300 bg-white py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition"
-                    >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24">
-                            <path
-                                fill="#4285F4"
-                                d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v2.98h3.86c2.26-2.08 3.56-5.14 3.56-8.8z"
-                            />
-                            <path
-                                fill="#34A853"
-                                d="M12 24c3.24 0 5.95-1.08 7.93-2.93l-3.86-2.98c-1.08.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"
-                            />
-                            <path
-                                fill="#FBBC05"
-                                d="M5.27 14.28A7.19 7.19 0 0 1 4.89 12c0-.79.14-1.56.38-2.28V6.63H1.29A11.96 11.96 0 0 0 0 12c0 1.94.46 3.77 1.29 5.37l3.98-3.09z"
-                            />
-                            <path
-                                fill="#EA4335"
-                                d="M12 4.77c1.76 0 3.35.61 4.6 1.8l3.43-3.43C17.94 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.63l3.98 3.09C6.22 6.88 8.87 4.77 12 4.77z"
-                            />
-                        </svg>
-                        Continue with Google
-                    </button>
+                    {/* Google login — real Google-rendered button (required so we get a verifiable ID token) */}
+                    <div className="flex justify-center">
+                        <GoogleLogin
+                            onSuccess={handleGoogleSuccess}
+                            onError={handleGoogleError}
+                            width="100%"
+                            text="continue_with"
+                            shape="rectangular"
+                        />
+                    </div>
 
                     {/* Footer */}
                     <p className="mt-6 text-center text-sm text-gray-500">
                         Don&apos;t have an account?{" "}
-                        <a href="/register" className="font-medium text-gray-900 hover:underline">
+                        <Link href="/Register" className="font-medium text-gray-900 hover:underline">
+
                             Register
-                        </a>
+                        </Link>
                     </p>
                 </div>
             </div>
