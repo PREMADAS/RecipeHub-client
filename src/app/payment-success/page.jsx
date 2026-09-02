@@ -167,13 +167,13 @@ function PaymentSuccessContent() {
 
                 <div className="flex flex-col sm:flex-row gap-3">
                     <Link
-                        href={payment.recipeId ? `/recipes/${payment.recipeId}` : "/"}
+                        href={payment.recipeId ? `/BrowseRecipe/${payment.recipeId}` : "/"}
                         className="flex-1 px-5 py-2.5 rounded-full bg-green-700 text-white text-[13.5px] font-semibold hover:bg-green-800 transition-colors"
                     >
                         View Recipe
                     </Link>
                     <Link
-                        href="/private/UserDashboard/Purchased"
+                        href="/private/UserDashboard/PurchasedPage"
                         className="flex-1 px-5 py-2.5 rounded-full border border-[#E5D9BE] text-[#2B2118] text-[13.5px] font-semibold hover:bg-[#F7F3E9] transition-colors"
                     >
                         My Purchases
