@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, Loader2, Receipt, XCircle } from "lucide-react";
 
-const SERVER = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const SERVER = process.env.NEXT_PUBLIC_API_URL;
 
 function PaymentSuccessContent() {
     const router = useRouter();

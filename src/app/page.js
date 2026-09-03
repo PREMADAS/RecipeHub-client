@@ -17,4 +17,3 @@ export default function HomePage() {
   );
 }
 
-//546436961883-65bhjqc45kvjcj6c4pke9519l6t8pk81.apps.googleusercontent.com

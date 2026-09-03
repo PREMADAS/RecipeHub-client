@@ -18,7 +18,7 @@ import {
     CheckCircle2,
 } from "lucide-react";
 
-const SERVER = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const SERVER = process.env.NEXT_PUBLIC_API_URL;
 // NOTE: loadStripe/stripePromise removed — the backend returns a hosted
 // Checkout `url` directly (redirect flow), so @stripe/stripe-js's
 // redirectToCheckout() is never actually used. If you later switch to

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Heart, Trash2, Eye, Loader2, Utensils } from "lucide-react";
 
-const SERVER = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') || "http://localhost:5000";
+const SERVER = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
 
 export default function MyFavorites() {
     const [favorites, setFavorites] = useState([]);
