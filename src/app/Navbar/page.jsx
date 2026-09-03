@@ -28,7 +28,7 @@ export default function Navbar() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/me`, {
+                const res = await fetch(`${process.env.NEXT_API_URL}/api/me`, {
                     method: "GET",
                     credentials: "include",
                 });
@@ -62,7 +62,7 @@ export default function Navbar() {
 
     const handleLogout = async () => {
         try {
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/logout`, {
+            await fetch(`${process.env.NEXT_API_URL}/api/logout`, {
                 method: "POST",
                 credentials: "include",
             });

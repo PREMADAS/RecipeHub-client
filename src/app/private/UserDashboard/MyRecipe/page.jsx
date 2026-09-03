@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { BookOpen, Eye, Pencil, Trash2, ThumbsUp } from "lucide-react";
 import Link from "next/link";
 
-const SERVER = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
+const SERVER = process.env.NEXT_API_URL?.replace(/\/$/, '');
 
 export default function MyRecipePage() {
     const [recipes, setRecipes] = useState([]);

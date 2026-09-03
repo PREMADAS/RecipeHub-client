@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Heart } from "lucide-react";
 import Link from "next/link";
 
-const SERVER = process.env.NEXT_PUBLIC_SERVER_URL;
+const SERVER = process.env.NEXT_API_URL;
 
 export default function PopularRecipes() {
     const [recipes, setRecipes] = useState([]);

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { Search, Star, Trash2, Pencil } from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_API_URL;
 
 export default function ManageRecipesPage() {
     const [recipes, setRecipes] = useState([]);

@@ -17,7 +17,7 @@ export default function BrowseRecipesPage() {
         const fetchRecipes = async () => {
             try {
                 setLoading(true);
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/recipes?page=${page}&limit=9`);
+                const res = await fetch(`${process.env.NEXT_API_URL}/api/recipes?page=${page}&limit=9`);
                 const data = await res.json();
                 if (res.ok) {
                     setRecipes(data.recipes);

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { Search, ShieldCheck, ShieldOff } from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_API_URL;
 
 export default function ManageUsersPage() {
     const [users, setUsers] = useState([]);

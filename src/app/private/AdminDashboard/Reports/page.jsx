@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { Search, XCircle, Trash2 } from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_API_URL;
 
 const REASON_LABELS = {
     spam: "Spam",

@@ -72,7 +72,7 @@ function LoginForm() {
         setLoading(true);
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/login`, {
+            const res = await fetch(`${process.env.NEXT_API_URL}/api/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include", // httpOnly cookie পাঠানো/গ্রহণ করার জন্য বাধ্যতামূলক
@@ -107,7 +107,7 @@ function LoginForm() {
 
         try {
             const res = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`,
+                `${process.env.NEXT_API_URL}/api/auth/google`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
