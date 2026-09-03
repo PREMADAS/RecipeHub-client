@@ -10,14 +10,18 @@ export default function BrowseRecipesPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedCategory, setSelectedCategory] = useState("All");
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
     useEffect(() => {
         const fetchRecipes = async () => {
             try {
-                const res = await fetch("http://localhost:5000/api/recipes");
+                setLoading(true);
+                const res = await fetch(`http://localhost:5000/api/recipes?page=${page}&limit=9`);
                 const data = await res.json();
                 if (res.ok) {
                     setRecipes(data.recipes);
+                    setTotalPages(data.totalPages || 1);
                 } else {
                     setError(data.error || "Failed to load recipes");
                 }
@@ -29,7 +33,7 @@ export default function BrowseRecipesPage() {
             }
         };
         fetchRecipes();
-    }, []);
+    }, [page]);
 
     const categories = ["All", ...new Set(recipes.map((r) => r.category).filter(Boolean))];
     const filteredRecipes =
@@ -98,6 +102,39 @@ export default function BrowseRecipesPage() {
                                 </motion.div>
                             ))}
                         </AnimatePresence>
+                    </div>
+                )}
+
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-10">
+                        <button
+                            onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                            disabled={page === 1}
+                            className="px-4 py-2 rounded-lg text-[13.5px] font-semibold border border-[#E5D9BE] text-[#4A3B2C] disabled:opacity-40 disabled:cursor-not-allowed hover:border-green-700"
+                        >
+                            Prev
+                        </button>
+
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+                            <button
+                                key={num}
+                                onClick={() => setPage(num)}
+                                className={`w-9 h-9 rounded-lg text-[13.5px] font-semibold border transition-colors ${page === num
+                                    ? "bg-green-700 border-green-700 text-white"
+                                    : "border-[#E5D9BE] text-[#4A3B2C] hover:border-green-700"
+                                    }`}
+                            >
+                                {num}
+                            </button>
+                        ))}
+
+                        <button
+                            onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                            disabled={page === totalPages}
+                            className="px-4 py-2 rounded-lg text-[13.5px] font-semibold border border-[#E5D9BE] text-[#4A3B2C] disabled:opacity-40 disabled:cursor-not-allowed hover:border-green-700"
+                        >
+                            Next
+                        </button>
                     </div>
                 )}
             </div>
