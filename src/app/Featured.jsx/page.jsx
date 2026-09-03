@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 
 // আপনার Express backend যেই URL এ চলছে সেটা এখানে বসান
-const BACKEND_URL = "http://localhost:5000";
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function FeaturedRecipes() {
     const [recipes, setRecipes] = useState([]);
