@@ -19,7 +19,7 @@ const NAV_ITEMS = [
 
 // Backend base URL — set NEXT_PUBLIC_API_URL in your .env.local
 // e.g. NEXT_PUBLIC_API_URL=http://localhost:5000
-const API_URL = process.env.NEXT_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function AdminDashboardLayout({ children }) {
     const pathname = usePathname();
