@@ -31,7 +31,7 @@ export default function ProfilePage() {
 
                 if (res.status === 401) {
                     // not logged in / token expired — send to login
-                    router.push("/login");
+                    router.push("/Login");
                     return;
                 }
 
