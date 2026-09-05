@@ -6,7 +6,7 @@ import { Leaf, Mail, Phone, MapPin } from "lucide-react";
 const QUICK_LINKS = [
     { label: "Home", href: "/" },
     { label: "Browse Recipes", href: "/BrowseRecipe" },
-    { label: "Login", href: "/Login" },
+    { label: "login", href: "/login" },
     { label: "Register", href: "/Register" },
 ];
 

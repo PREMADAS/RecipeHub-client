@@ -34,7 +34,7 @@ function PaymentSuccessContent() {
                 );
 
                 if (res.status === 401) {
-                    router.push(`/Login?redirect=/payment-success?session_id=${sessionId}%26recipeId=${recipeId}`);
+                    router.push(`/login?redirect=/payment-success?session_id=${sessionId}%26recipeId=${recipeId}`);
                     return;
                 }
 

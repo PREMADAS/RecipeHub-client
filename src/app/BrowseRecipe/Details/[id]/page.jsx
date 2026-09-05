@@ -55,7 +55,7 @@ export default function RecipeDetails() {
     // back on this exact recipe after logging in (handled by
     // getPostLoginRoute on the login page, which respects non-dashboard
     // intended routes as-is).
-    const loginRedirectUrl = `/Login?redirect=/BrowseRecipe/${id}`;
+    const loginRedirectUrl = `/login?redirect=/BrowseRecipe/${id}`;
 
     // ---------- Fetch confirmed purchase status from the SERVER ----------
     // Never trust the URL alone for this — the backend's Stripe webhook

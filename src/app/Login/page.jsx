@@ -82,13 +82,13 @@ function LoginForm() {
             const data = await res.json();
 
             if (!res.ok) {
-                toast.error(data.error || "Login failed. Please try again.");
-                setError(data.error || "Login failed. Please try again.");
+                toast.error(data.error || "login failed. Please try again.");
+                setError(data.error || "login failed. Please try again.");
                 setLoading(false);
                 return;
             }
 
-            toast.success("Login successful!");
+            toast.success("login successful!");
 
             const destination = getPostLoginRoute(data.user?.role);
             router.push(destination);
@@ -125,7 +125,7 @@ function LoginForm() {
                 return;
             }
 
-            toast.success("Login successful!");
+            toast.success("login successful!");
 
             const destination = getPostLoginRoute(data.user?.role);
             router.push(destination);
@@ -148,7 +148,7 @@ function LoginForm() {
                     {/* Header */}
                     <div className="mb-6 sm:mb-8">
                         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                            Login
+                            login
                         </h1>
                         <p className="mt-1 text-sm text-gray-500">
                             Welcome back — enter your details to continue.

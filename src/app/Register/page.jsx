@@ -67,7 +67,7 @@ export default function RegisterPage() {
 
             // Registration সফল হলে toast দেখিয়ে login page এ পাঠিয়ে দেওয়া হচ্ছে
             toast.success("Registration successful!");
-            router.push("/Login");
+            router.push("/login");
         } catch (err) {
             console.error(err);
             toast.error("Something went wrong. Please try again.");
@@ -226,7 +226,7 @@ export default function RegisterPage() {
                     {/* Footer */}
                     <p className="mt-6 text-center text-sm text-gray-500">
                         Already have an account?{" "}
-                        <a href="/Login" className="font-medium text-gray-900 hover:underline">
+                        <a href="/login" className="font-medium text-gray-900 hover:underline">
                             Log in
                         </a>
                     </p>

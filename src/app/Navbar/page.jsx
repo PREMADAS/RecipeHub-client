@@ -169,10 +169,10 @@ export default function Navbar() {
                         ) : (
                             <>
                                 <Link
-                                    href="/Login"
+                                    href="/login"
                                     className="text-[13.5px] font-semibold px-4 py-2 rounded-lg border border-[#2B2118]/15 dark:border-white/15 text-[#2B2118] dark:text-[#ededed] hover:bg-[#2B2118]/5 dark:hover:bg-white/10 transition-colors duration-150"
                                 >
-                                    Login
+                                    login
                                 </Link>
                                 <Link
                                     href="/Register"
@@ -268,11 +268,11 @@ export default function Navbar() {
                         !authLoading && (
                             <div className="flex gap-3 mt-3">
                                 <Link
-                                    href="/Login"
+                                    href="/login"
                                     onClick={() => setMenuOpen(false)}
                                     className="flex-1 text-center text-[13.5px] font-semibold px-4 py-2.5 rounded-lg border border-[#2B2118]/15 dark:border-white/15 text-[#2B2118] dark:text-[#ededed]"
                                 >
-                                    Login
+                                    login
                                 </Link>
                                 <Link
                                     href="/Register"
