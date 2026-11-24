@@ -24,7 +24,7 @@ export default function Navbar() {
 
     const profileRef = useRef(null);
 
-    // পেজ লোড হওয়ার সাথে সাথে বর্তমান ইউজার কে জানা আছে কিনা চেক করা (cookie দিয়ে)
+    
     useEffect(() => {
         const fetchUser = async () => {
             try {
@@ -77,8 +77,8 @@ export default function Navbar() {
 
     return (
         <header className="sticky top-0 z-50 bg-white dark:bg-[#0a0a0a] backdrop-blur-md border-b border-[#E5D9BE] dark:border-white/10">
-            <div className="max-w-6xl mx-auto px-6">
-                <div className="flex items-center justify-between h-[68px]">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6">
+                <div className="flex items-center justify-between gap-3 h-[68px]">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2 shrink-0">
                         <Image
@@ -86,21 +86,21 @@ export default function Navbar() {
                             alt="RecipeHub logo"
                             width={250}
                             height={250}
-                            className="object-contain"
+                            className="h-9 w-[140px] object-contain object-left sm:h-10 sm:w-[160px] md:w-[180px] lg:h-[250px] lg:w-[250px] lg:object-center"
                             priority
                         />
 
                     </Link>
 
                     {/* Desktop links */}
-                    <nav className="hidden md:flex items-center gap-9">
+                    <nav className="hidden md:flex items-center gap-5 lg:gap-9">
                         {NAV_LINKS.map((link) => {
                             const isActive = pathname === link.href;
                             return (
                                 <Link
                                     key={link.href}
                                     href={link.href}
-                                    className={`relative text-[14.5px] font-medium transition-colors duration-150 ${isActive
+                                    className={`relative whitespace-nowrap text-[14.5px] font-medium transition-colors duration-150 ${isActive
                                         ? "text-[#2B2118] dark:text-[#ededed]"
                                         : "text-[#4A3B2C]/70 dark:text-[#ededed]/60 hover:text-[#2B2118] dark:hover:text-[#ededed]"
                                         }`}
@@ -116,7 +116,7 @@ export default function Navbar() {
                         {user && (
                             <Link
                                 href={user.role === "admin" ? "/private/AdminDashboard" : "/private/UserDashboard"}
-                                className={`relative text-[14.5px] font-medium transition-colors duration-150 ${pathname === "/dashboard"
+                                className={`relative whitespace-nowrap text-[14.5px] font-medium transition-colors duration-150 ${pathname === "/dashboard"
                                     ? "text-[#2B2118] dark:text-[#ededed]"
                                     : "text-[#4A3B2C]/70 dark:text-[#ededed]/60 hover:text-[#2B2118] dark:hover:text-[#ededed]"
                                     }`}
@@ -157,7 +157,7 @@ export default function Navbar() {
                                             </div>
                                         )}
                                     </div>
-                                    <span className="text-[13.5px] font-medium text-[#2B2118] dark:text-[#ededed]">
+                                    <span className="max-w-[100px] truncate text-[13.5px] font-medium text-[#2B2118] dark:text-[#ededed] lg:max-w-[160px]">
                                         {user.name}
                                     </span>
 
@@ -170,13 +170,13 @@ export default function Navbar() {
                             <>
                                 <Link
                                     href="/Login"
-                                    className="text-[13.5px] font-semibold px-4 py-2 rounded-lg border border-[#2B2118]/15 dark:border-white/15 text-[#2B2118] dark:text-[#ededed] hover:bg-[#2B2118]/5 dark:hover:bg-white/10 transition-colors duration-150"
+                                    className="text-[13.5px] font-semibold px-3 py-2 rounded-lg border border-[#2B2118]/15 dark:border-white/15 text-[#2B2118] dark:text-[#ededed] hover:bg-[#2B2118]/5 dark:hover:bg-white/10 transition-colors duration-150 lg:px-4"
                                 >
                                     Login
                                 </Link>
                                 <Link
                                     href="/Register"
-                                    className="text-[13.5px] font-semibold px-4 py-2 rounded-lg text-white bg-green-600 shadow-[0_6px_16px_rgba(193,80,46,0.28)] hover:-translate-y-px transition-transform duration-150"
+                                    className="text-[13.5px] font-semibold px-3 py-2 rounded-lg text-white bg-green-600 shadow-[0_6px_16px_rgba(193,80,46,0.28)] hover:-translate-y-px transition-transform duration-150 lg:px-4"
                                 >
                                     Register
                                 </Link>
@@ -185,13 +185,13 @@ export default function Navbar() {
                     </div>
 
                     {/* Mobile actions */}
-                    <div className="md:hidden flex items-center gap-2">
+                    <div className="md:hidden flex items-center gap-1 sm:gap-2">
                         <ThemeToggle />
 
                         {/* Mobile hamburger */}
                         <button
                             onClick={() => setMenuOpen((o) => !o)}
-                            className="w-9 h-9 flex flex-col items-center justify-center gap-[5px]"
+                            className="w-10 h-10 shrink-0 flex flex-col items-center justify-center gap-[5px]"
                             aria-label="Toggle menu"
                         >
                             <span
@@ -213,16 +213,18 @@ export default function Navbar() {
 
             {/* Mobile menu */}
             <div
-                className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${menuOpen ? "max-h-96" : "max-h-0"
+                className={`md:hidden transition-all duration-300 ease-in-out ${menuOpen
+                    ? "max-h-[calc(100dvh-68px)] overflow-y-auto"
+                    : "max-h-0 overflow-hidden"
                     }`}
             >
-                <div className="px-6 pb-5 flex flex-col gap-1 border-t border-[#E5D9BE] dark:border-white/10 pt-4">
+                <div className="px-4 sm:px-6 pb-5 flex flex-col gap-1 border-t border-[#E5D9BE] dark:border-white/10 pt-4">
                     {NAV_LINKS.map((link) => (
                         <Link
                             key={link.href}
                             href={link.href}
                             onClick={() => setMenuOpen(false)}
-                            className={`text-[15px] font-medium py-2.5 ${pathname === link.href ? "text-[#C1502E]" : "text-[#2B2118] dark:text-[#ededed]"
+                            className={`text-[15px] font-medium py-3 ${pathname === link.href ? "text-[#C1502E]" : "text-[#2B2118] dark:text-[#ededed]"
                                 }`}
                         >
                             {link.label}
@@ -233,7 +235,7 @@ export default function Navbar() {
                         <Link
                             href={user.role === "admin" ? "/private/AdminDashboard" : "/private/UserDashboard"}
                             onClick={() => setMenuOpen(false)}
-                            className={`text-[15px] font-medium py-2.5 ${pathname === "/dashboard" ? "text-[#C1502E]" : "text-[#2B2118] dark:text-[#ededed]"
+                            className={`text-[15px] font-medium py-3 ${pathname === "/dashboard" ? "text-[#C1502E]" : "text-[#2B2118] dark:text-[#ededed]"
                                 }`}
                         >
                             Dashboard
@@ -242,7 +244,7 @@ export default function Navbar() {
 
                     {!authLoading && user ? (
                         <div className="mt-3 pt-3 border-t border-[#E5D9BE] dark:border-white/10">
-                            <div className="flex items-center gap-2.5 mb-3">
+                            <div className="flex min-w-0 items-center gap-2.5 mb-3">
                                 <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-white/10 shrink-0">
                                     {user.image ? (
                                         <Image
@@ -258,7 +260,7 @@ export default function Navbar() {
                                         </div>
                                     )}
                                 </div>
-                                <span className="text-[14px] font-medium text-[#2B2118] dark:text-[#ededed]">
+                                <span className="truncate text-[14px] font-medium text-[#2B2118] dark:text-[#ededed]">
                                     {user.name}
                                 </span>
                             </div>
@@ -270,14 +272,14 @@ export default function Navbar() {
                                 <Link
                                     href="/login"
                                     onClick={() => setMenuOpen(false)}
-                                    className="flex-1 text-center text-[13.5px] font-semibold px-4 py-2.5 rounded-lg border border-[#2B2118]/15 dark:border-white/15 text-[#2B2118] dark:text-[#ededed]"
+                                    className="flex-1 text-center text-[13.5px] font-semibold px-4 py-3 rounded-lg border border-[#2B2118]/15 dark:border-white/15 text-[#2B2118] dark:text-[#ededed]"
                                 >
                                     Login
                                 </Link>
                                 <Link
                                     href="/Register"
                                     onClick={() => setMenuOpen(false)}
-                                    className="flex-1 text-center text-[13.5px] font-semibold px-4 py-2.5 rounded-lg text-white bg-green-600"
+                                    className="flex-1 text-center text-[13.5px] font-semibold px-4 py-3 rounded-lg text-white bg-green-600"
                                 >
                                     Register
                                 </Link>
